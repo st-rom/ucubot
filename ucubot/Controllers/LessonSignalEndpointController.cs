@@ -7,50 +7,54 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using MySql.Data.MySqlClient;
 using ucubot.Model;
+using Dapper;
+using  ucubot.DBRepository;
 
 namespace ucubot.Controllers
 {
-    [Route("api/[controller]")]
-    public class LessonSignalEndpointController : Controller
-    {
-        private readonly IConfiguration _configuration;
+	[Route("api/[controller]")]
+	public class LessonSignalEndpointController : Controller
+	{
+		private readonly ILessonSignalRepository _lessonSignalRepository;
+		
+		
+		public LessonSignalEndpointController(ILessonSignalRepository lessonSignalRepository)
+		{
+			_lessonSignalRepository = lessonSignalRepository;
+		}
 
-        public LessonSignalEndpointController(IConfiguration configuration)
-        {
-            _configuration = configuration;
-        }
-
-        [HttpGet]
-        public IEnumerable<LessonSignalDto> ShowSignals()
-        {
-            var connectionString = _configuration.GetConnectionString("BotDatabase");
-            // TODO: add query to get all signals
-            return new LessonSignalDto[0];
-        }
-        
-        [HttpGet("{id}")]
-        public LessonSignalDto ShowSignal(long id)
-        {
-            // TODO: add query to get a signal by the given id
-            return null;
-        }
-        
-        [HttpPost]
-        public async Task<IActionResult> CreateSignal(SlackMessage message)
-        {
-            var userId = message.user_id;
-            var signalType = message.text.ConvertSlackMessageToSignalType();
-
-            // TODO: add insert command to store signal
-            
-            return Accepted();
-        }
-        
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> RemoveSignal(long id)
-        {
-            //TODO: add delete command to remove signal
-            return Accepted();
-        }
-    }
-}
+		[HttpGet]
+		public IEnumerable<LessonSignalDto> ShowSignals()
+		{
+			return _lessonSignalRepository.ShowSignalsDBRep();
+		}
+		
+		[HttpGet("{id}")]
+		public LessonSignalDto ShowSignal(long id)
+		{
+			return _lessonSignalRepository.ShowSignalDBRep(id);
+		}
+		
+		[HttpPost]
+		public async Task<IActionResult> CreateSignal(SlackMessage message)
+		{
+			var sig = _lessonSignalRepository.CreateSignalDBRep(message);
+			if (sig == 400)
+			{
+				return BadRequest();
+			}
+			if (sig == 409)
+			{
+				return StatusCode(409);
+			}
+			return Accepted();
+		}
+		
+		[HttpDelete("{id}")]
+		public async Task<IActionResult> RemoveSignal(long id)
+		{
+			_lessonSignalRepository.RemoveSignalDBRep(id);
+			return Accepted();
+		}
+	}
+} 
