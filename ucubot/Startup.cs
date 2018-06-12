@@ -12,7 +12,9 @@ using Newtonsoft.Json.Serialization;
 using Ninject;
 using Ninject.Activation;
 using Ninject.Infrastructure.Disposal;
+using ucubot.DBRepository;
 using ucubot.Infrastructure;
+using ucubot.Model;
 
 namespace ucubot
 {
@@ -25,6 +27,7 @@ namespace ucubot
         private object Resolve(Type type) => Kernel.Get(type);
         private object RequestScope(IContext context) => scopeProvider.Value;
         
+        
         public Startup(IHostingEnvironment env)
         {
             var builder = new ConfigurationBuilder()
@@ -34,9 +37,15 @@ namespace ucubot
                 .AddJsonFile($"appsettings.Db.json", optional: false)
                 .AddEnvironmentVariables();
             Configuration = builder.Build();
+            StudentRepository = new StudentEndpointDBRepository(Configuration);
+            LessonSignalRepository = new LessonSignalEndpointDBRepository(Configuration);
+            StudentSignalsRepository = new StudentSignalsDBRepository(Configuration);
         }
 
         private IConfiguration Configuration { get; }
+        private IStudentRepository StudentRepository { get; }
+        private ILessonSignalRepository LessonSignalRepository { get; }
+        private IStudentSignalsRepository StudentSignalsRepository { get; }
 
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
@@ -58,6 +67,9 @@ namespace ucubot
 //            services.AddCustomControllerActivation(Resolve);
 //            services.AddCustomViewComponentActivation(Resolve);
             services.AddSingleton<IConfiguration>(f => Configuration);
+            services.AddSingleton<IStudentRepository>(f => StudentRepository);
+            services.AddSingleton<ILessonSignalRepository>(f => LessonSignalRepository);
+            services.AddSingleton<IStudentSignalsRepository>(f => StudentSignalsRepository);
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -93,7 +105,10 @@ namespace ucubot
             config.Bind<ILoggerFactory>().ToConstant(loggerFactory);
 
             config.Bind<IConfiguration>().ToConstant(Configuration);
-
+            config.Bind<IStudentRepository>().ToConstant(StudentRepository);
+            config.Bind<ILessonSignalRepository>().ToConstant(LessonSignalRepository);
+            config.Bind<IStudentSignalsRepository>().ToConstant(StudentSignalsRepository);
+            
             return config.BuildReadonlyKernel();
         }
             
